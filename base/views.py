@@ -9,8 +9,11 @@ from .models import Task
 # whenever form is submitted we can redirect successfully to diff page
 from django.urls import reverse_lazy
 from django.contrib.auth.views import LoginView
+
 from django.contrib.auth.mixins import LoginRequiredMixin
+# built in form called user creation form once submitted just create user for us 
 from django.contrib.auth.forms import UserCreationForm
+# when we create method then we want user directly loged in  and redirected
 from django.contrib.auth import login
 
 #login
@@ -30,11 +33,13 @@ class RegisterPage(FormView):
     redirect_authenticated_user = True
     success_url = reverse_lazy('tasks')
 
+    #redirect user when form submitted
     def form_valid(self, form):
         user = form.save()
         if user is not None:
             login(self.request, user)
         return super(RegisterPage, self).form_valid(form)
+    
     
     def get(self, *args, **kwargs):
         if self.request.user.is_authenticated:
@@ -43,16 +48,20 @@ class RegisterPage(FormView):
 
 
 
+
 # Create your views here.
+# by using thins LoginRequiredMixin we restrict the user
 class TaskList(LoginRequiredMixin,ListView):
     model = Task
     context_object_name = 'tasks'
 
+# get_context_data returns back the data that are passing
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['tasks'] = context['tasks'].filter(user=self.request.user)
         context['count'] = context['tasks'].filter(complete=False).count()
 
+        
         # search functionality logic
         search_input  = self.request.GET.get('search-area') or ''
         #filter data
@@ -61,9 +70,9 @@ class TaskList(LoginRequiredMixin,ListView):
                 title__startswith = search_input)
 
         context['search_input'] = search_input
-        # context['color'] = ' red'
         return context
 
+        
 
 class TaskDetail(LoginRequiredMixin,DetailView):
     model = Task
@@ -77,6 +86,7 @@ class TaskCreate(LoginRequiredMixin,CreateView):
     fields = ['title', 'description', 'complete']
     success_url = reverse_lazy('tasks')
 
+    
     def form_valid(self, form):
         form.instance.user = self.request.user
         return super(TaskCreate, self).form_valid(form)
